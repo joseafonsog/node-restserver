@@ -1,9 +1,10 @@
 require("./config/config");
 
 const express = require("express");
-const app = express();
-
+const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
+
+const app = express();
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -11,34 +12,12 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
-app.get("/user", (req, res) => {
-  res.json("get user!");
-});
+app.use(require("./routes/user"));
 
-app.post("/user", (req, res) => {
-  let body = req.body;
+mongoose.connect("mongodb://localhost:27017/coffee", (err, res) => {
+  if (err) throw err;
 
-  if (body.name === undefined) {
-    res.status(400).json({
-      ok: false,
-      message: "Name is required!"
-    });
-  } else {
-    res.json({
-      user: body
-    });
-  }
-});
-
-app.put("/user/:id", (req, res) => {
-  let id = req.params.id;
-  res.json({
-    id
-  });
-});
-
-app.delete("/user", (req, res) => {
-  res.json("delete user!");
+  console.log("Database ONLINE");
 });
 
 app.listen(process.env.PORT, () => {
