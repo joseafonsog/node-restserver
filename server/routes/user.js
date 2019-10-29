@@ -1,11 +1,39 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const _ = require("underscore");
 const User = require("../models/user");
 
 const app = express();
 
 app.get("/users", (req, res) => {
-  res.json("get user!");
+
+  let from = req.query.from || 0;
+  from = Number(from);
+
+  let limit = req.query.limit || 5;
+  limit = Number(limit);
+
+  User.find({state: true}, "name email role state google img")
+  .skip(from)
+  .limit(limit)
+  .exec((err, users) => {
+    if (err) {
+      return res.status(400).json({
+        ok: false,
+        err
+      });
+    }
+
+    User.count({state: true}, (err, count) => {
+      res.json({
+        ok: true,
+        users,
+        total: count
+      });
+    });
+
+
+  });
 });
 
 app.post("/users", (req, res) => {
@@ -35,13 +63,73 @@ app.post("/users", (req, res) => {
 
 app.put("/users/:id", (req, res) => {
   let id = req.params.id;
-  res.json({
-    id
+  let body = _.pick(req.body, ["name", "email", "img", "role", "state"] );
+
+  User.findByIdAndUpdate(id, body, { new: true, runValidators: true }, (err, userDB) => {
+    
+    if (err) {
+      return res.status(400).json({
+        ok: false,
+        err
+      });
+    }
+
+    res.json({
+      ok: true,
+      user: userDB
+    });
   });
+
 });
 
-app.delete("/users", (req, res) => {
-  res.json("delete user!");
+app.delete("/users/:id", (req, res) => {
+  let id = req.params.id;
+
+  User.findByIdAndUpdate(id, { state: false }, { new: true }, (err, userDB) => {
+    if (err) {
+      return res.status(400).json({
+        ok: false,
+        err
+      });
+    }
+
+    if (!userDB) {
+      return res.status(400).json({
+        ok: false,
+        err: {
+          message: "User not found!"
+        }
+      });
+    }
+
+    res.json({
+      ok: true,
+      user: userDB
+    });
+  });
+
+  // User.findByIdAndRemove(id, (err, userDeleted) => {
+  //   if (err) {
+  //     return res.status(400).json({
+  //       ok: false,
+  //       err
+  //     });
+  //   }
+
+  //   if (!userDeleted) {
+  //     return res.status(400).json({
+  //       ok: false,
+  //       err: {
+  //         message: "User not found!"
+  //       }
+  //     });
+  //   }
+
+  //   res.json({
+  //     ok: true,
+  //     user: userDeleted
+  //   });
+  // });
 });
 
 module.exports = app;
